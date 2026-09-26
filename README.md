@@ -42,6 +42,30 @@ make run
 Use `make run-headless` to send the output to the terminal instead of opening a
 QEMU display window. Press `Ctrl-C` after the messages appear.
 
+## Processor-mode roadmap
+
+The processor does not begin in 8-bit mode. A byte contains 8 bits, but that is a
+data size, not a CPU execution mode. Our startup path is:
+
+```mermaid
+flowchart LR
+    BIOS["BIOS"]
+    REAL["16-bit real mode"]
+    PROTECTED["32-bit protected mode"]
+    PAGING["Prepare page tables"]
+    LONG["64-bit long mode"]
+    KERNEL["64-bit freestanding C kernel"]
+
+    BIOS --> REAL --> PROTECTED --> PAGING --> LONG --> KERNEL
+```
+
+The loader begins in 16-bit real mode because that is the legacy-BIOS startup
+contract. Lesson 5 now enters 32-bit protected mode. The next transition will
+create page tables, enable the controls required for long mode, and jump into
+64-bit code. Only after that stable 64-bit environment exists will we begin the
+kernel's C entry point. Assembly will remain for the small operations that must
+directly control the processor.
+
 ## Long-term direction
 
 We will continue from the bootloader to a 64-bit kernel and gradually add the

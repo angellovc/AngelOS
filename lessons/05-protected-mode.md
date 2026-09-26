@@ -30,6 +30,33 @@ flowchart LR
     REAL --> PROTECTED --> LONG
 ```
 
+### Do not confuse bits in data with processor modes
+
+A **byte** contains 8 bits. That describes the size of a data value or memory
+location; it does not mean that the processor is running in “8-bit mode.” The
+three execution modes in our roadmap are 16-bit real mode, 32-bit protected mode,
+and 64-bit long mode.
+
+```text
+data width:       one byte = 8 bits
+execution mode:   real mode = 16-bit instruction defaults
+                  protected mode = 32-bit instruction defaults
+                  long mode = 64-bit instruction defaults
+```
+
+Our complete transition path is therefore:
+
+```mermaid
+flowchart LR
+    REAL["16-bit real mode"]
+    PM["32-bit protected mode"]
+    TABLES["Create page tables"]
+    LONG["64-bit long mode"]
+    C["64-bit freestanding C kernel"]
+
+    REAL --> PM --> TABLES --> LONG --> C
+```
+
 ## Code companion
 
 Lesson 5 is implemented in [`boot/stage2.asm`](../boot/stage2.asm):
@@ -475,4 +502,22 @@ We can now explain:
 - how direct VGA output replaces BIOS video services after the transition.
 
 The processor is now executing 32-bit protected-mode code. The next lesson will
-introduce the page-table structures needed to enter 64-bit long mode.
+introduce the page-table structures needed to enter 64-bit long mode. The
+longer-term path is:
+
+```mermaid
+flowchart TD
+    PM["Current: 32-bit protected mode"]
+    PAGING["Page tables and address translation"]
+    LONG["64-bit long mode"]
+    C["Freestanding C kernel"]
+    IRQ["Interrupts and exceptions"]
+    MEMORY["Physical and virtual memory management"]
+    TASKS["Processes, threads, and scheduling"]
+    SMP["Multiple processor cores"]
+    DEVICES["Drivers, storage, networking"]
+
+    PM --> PAGING --> LONG --> C
+    C --> IRQ --> MEMORY --> TASKS --> SMP
+    C --> DEVICES
+```
