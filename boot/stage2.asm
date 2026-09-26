@@ -1,7 +1,8 @@
 ; stage2.asm — Lesson 2: code loaded from disk by our boot sector
 ; Code guide: lessons/02-stage2-loader.md explains the stage handoff;
 ; lessons/03-physical-memory-map.md explains E820 and hexadecimal output;
-; lessons/04-a20-line.md explains access beyond the first MiB.
+; lessons/04-a20-line.md explains access beyond the first MiB;
+; lessons/05-protected-mode.md explains the GDT and the 32-bit transition.
 ;
 ; Stage 1 loads this flat binary at physical address 0000:8000 and performs a
 ; far jump there. We are still in 16-bit real mode, so BIOS interrupts remain
@@ -40,6 +41,8 @@ stage2_start:
     call print_string
 
     call print_memory_map
+
+    call enter_protected_mode
 
     cli
 .halt:
@@ -81,6 +84,89 @@ ensure_a20:
 .failed:
     xor ax, ax
     ret
+
+; Enter 32-bit protected mode. This routine does not return: the far jump below
+; transfers execution to protected_mode_entry, which is assembled as 32-bit code.
+enter_protected_mode:
+    cli
+    lgdt [stage2_address(gdt_descriptor)]
+
+    mov eax, cr0
+    or eax, 0x00000001          ; Set CR0.PE: enable protected mode.
+    mov cr0, eax
+
+    ; A far jump reloads CS from the GDT. Selector 0x08 chooses descriptor 1,
+    ; our flat 32-bit code descriptor. The jump is required after setting PE so
+    ; the processor begins fetching instructions under the new rules.
+    jmp dword 0x08:stage2_address(protected_mode_entry)
+
+; The first descriptor is required to be unusable. Selectors 0x08 and 0x10 then
+; refer to the code and data descriptors below (each descriptor is 8 bytes).
+gdt_start:
+    dq 0x0000000000000000       ; Selector 0x00: null descriptor.
+
+    dw 0xffff                    ; Selector 0x08: code limit, low 16 bits.
+    dw 0x0000                    ; Code base, low 16 bits.
+    db 0x00                      ; Code base, next 8 bits.
+    db 10011010b                 ; Present, ring 0, executable, readable.
+    db 11001111b                 ; 4 KiB granularity, 32-bit default, limit high.
+    db 0x00                      ; Code base, high 8 bits.
+
+    dw 0xffff                    ; Selector 0x10: data limit, low 16 bits.
+    dw 0x0000                    ; Data base, low 16 bits.
+    db 0x00                      ; Data base, next 8 bits.
+    db 10010010b                 ; Present, ring 0, writable data.
+    db 11001111b                 ; 4 KiB granularity, 32-bit default, limit high.
+    db 0x00                      ; Data base, high 8 bits.
+gdt_end:
+
+gdt_descriptor:
+    dw gdt_end - gdt_start - 1  ; Size is last byte offset, not byte count.
+    dd stage2_address(gdt_start) ; Physical address of the first descriptor.
+
+; From this point onward NASM encodes ordinary instructions with 32-bit defaults.
+bits 32
+
+protected_mode_entry:
+    mov ax, 0x10                 ; Data-segment selector from the GDT.
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+    mov esp, 0x00090000          ; Stack in the low usable-RAM range.
+
+    mov esi, stage2_address(pm_message)
+    call pm_print_string
+
+.halt:
+    cli
+    hlt
+    jmp .halt
+
+; Print a null-terminated string without BIOS. BIOS INT instructions are real-mode
+; services; in protected mode we write directly to the VGA text buffer and mirror
+; characters to QEMU's debug port.
+pm_print_string:
+    mov edi, 0x000b8000         ; VGA text memory: character/attribute pairs.
+    mov ah, 0x07                ; Light gray on black.
+
+.next:
+    mov al, [esi]
+    inc esi
+    test al, al
+    jz .done
+
+    mov [edi], al               ; Character byte.
+    mov [edi + 1], ah           ; Attribute byte.
+    add edi, 2
+    out 0xe9, al                ; QEMU debug output still accepts port E9h.
+    jmp .next
+
+.done:
+    ret
+
+bits 16
 
 ; Determine whether addresses separated by exactly 1 MiB refer to different RAM
 ; bytes. When A20 is disabled, 0000:0500 and FFFF:0510 alias the same physical
@@ -276,6 +362,7 @@ type_prefix        db ' type=0x', 0
 newline            db 13, 10, 0
 memory_map_error   db 'BIOS memory-map request failed.', 13, 10, 0
 hex_digits         db '0123456789ABCDEF'
+pm_message         db 'Protected mode: 32-bit code is running!', 13, 10, 0
 
 ; BIOS writes one E820 record here. Its maximum form occupies 24 bytes:
 ; base address (8), length (8), type (4), and extended attributes (4).

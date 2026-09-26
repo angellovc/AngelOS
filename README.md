@@ -22,6 +22,8 @@ are used, following the rules in [`LEARNING_RULES.md`](LEARNING_RULES.md).
    asks BIOS which physical-address ranges are usable RAM and prints the result.
 4. [`04-a20-line.md`](lessons/04-a20-line.md) — Why addresses one MiB apart can
    alias during early boot and how stage 2 verifies and enables address bit 20.
+5. [`05-protected-mode.md`](lessons/05-protected-mode.md) — How stage 2 builds a
+   GDT, enables protected mode, and runs 32-bit code without BIOS video services.
 
 Worked lesson exercises are stored in [`exercise-results`](exercise-results/).
 The [`CODE_READING_MAP.md`](CODE_READING_MAP.md) index connects every implemented
@@ -29,7 +31,7 @@ concept to its source file and stable assembly label.
 
 ## Build the current milestone
 
-The current code includes everything implemented through Lesson 4.
+The current code includes everything implemented through Lesson 5.
 
 ```sh
 make clean

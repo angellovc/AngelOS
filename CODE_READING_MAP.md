@@ -33,8 +33,10 @@ flowchart TD
     MAP["boot/stage2.asm<br/>print_memory_map and print_hex32"]
     L4["Lesson 4<br/>A20 address line"]
     A20["boot/stage2.asm<br/>ensure_a20 and check_a20"]
+    L5["Lesson 5<br/>Protected mode"]
+    PM["boot/stage2.asm<br/>enter_protected_mode and GDT"]
 
-    L0 --> L1 --> B1 --> L2 --> M --> S2 --> L3 --> MAP --> L4 --> A20
+    L0 --> L1 --> B1 --> L2 --> M --> S2 --> L3 --> MAP --> L4 --> A20 --> L5 --> PM
 ```
 
 ## Lesson-to-code index
@@ -60,6 +62,10 @@ flowchart TD
 | 4 | Test and request A20 | [`boot/stage2.asm`](boot/stage2.asm) | `ensure_a20:` |
 | 4 | Perform the alias test | [`boot/stage2.asm`](boot/stage2.asm) | `check_a20:` |
 | 4 | Stop after failure | [`boot/stage2.asm`](boot/stage2.asm) | `a20_failure:` |
+| 5 | Build and load the GDT | [`boot/stage2.asm`](boot/stage2.asm) | `gdt_start:` through `gdt_descriptor:` |
+| 5 | Enable protected mode | [`boot/stage2.asm`](boot/stage2.asm) | `enter_protected_mode:` |
+| 5 | Start 32-bit execution | [`boot/stage2.asm`](boot/stage2.asm) | `protected_mode_entry:` |
+| 5 | Direct VGA/debug output | [`boot/stage2.asm`](boot/stage2.asm) | `pm_print_string:` |
 
 ## Understanding local-label markers
 
