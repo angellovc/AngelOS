@@ -289,8 +289,21 @@ returned size in `ECX`, although this lesson does not yet need to display it.
 mov di, stage2_address(e820_buffer)
 ```
 
-This BIOS operation expects the destination as `ES:DI`. Stage 2 already set `ES`
-to zero. `DI` receives the buffer's address, so `ES:DI` identifies the same RAM
+This BIOS operation expects the destination as `ES:DI`. Near the beginning of
+`stage2_start`, stage 2 already set `ES` to zero:
+
+```asm
+xor ax, ax ; Every bit XOR itself is zero, so AX becomes 0.
+mov ds, ax ; Copy that zero into DS.
+mov es, ax ; Copy that zero into ES.
+```
+
+`xor ax,ax` is therefore a compact way to manufacture the zero needed by the next
+two instructions. It is not an E820 request by itself. x86 does not provide a
+`mov es,0` instruction that copies an immediate constant directly into `ES`, so
+we first place zero in the ordinary register `AX` and copy from there.
+
+Afterward, `DI` receives the buffer's address, so `ES:DI` identifies the same RAM
 location named by `e820_buffer`.
 
 The register name `DI` means Destination Index. The name reflects its common use,

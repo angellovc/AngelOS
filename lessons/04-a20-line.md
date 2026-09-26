@@ -36,20 +36,200 @@ The complete project index is in
 
 ## 1. What is an address line?
 
-Inside the machine, an address is represented as bits. Conceptually, the
-processor communicates those bits to memory hardware through signals called
-**address lines**. Each line corresponds to one bit position:
+### Begin with byte-addressed memory
 
-```text
-A0  carries address bit 0
-A1  carries address bit 1
-A2  carries address bit 2
-...
-A20 carries address bit 20
+Lesson 0 modeled RAM as many storage locations. Each location can hold one byte,
+and each location is identified by a different number called its **address**.
+
+The address and the stored byte are separate:
+
+- the **address** answers “which location?”;
+- the **content** answers “which byte is currently stored there?”
+
+For example, memory could currently contain:
+
+```mermaid
+flowchart LR
+    B0["Address 0<br/>contains 0xA7"]
+    B1["Address 1<br/>contains 0x20"]
+    B2["Address 2<br/>contains 0xFF"]
+    B3["Address 3<br/>contains 0x00"]
+    MORE["..."]
+
+    B0 --- B1 --- B2 --- B3 --- MORE
 ```
 
-Changing bit 0 changes an address by 1. Changing bit 1 changes it by 2. In
-general, bit `n` contributes `2ⁿ` to the address.
+Here, address 0 is the numeric identifier of the first illustrated location; the
+byte stored there happens to be `0xA7`. Address 1 identifies the following
+location; its content happens to be `0x20`. Writing a new byte changes the
+content, not the address:
+
+```text
+before: address 1 contains 0x20
+write:  store 0x55 at address 1
+after:  address 1 contains 0x55
+```
+
+This is called **byte-addressed memory**: every distinct address selects one
+byte-sized location. The addresses count locations, not bits. A multi-byte value
+occupies several consecutive addresses. For example, a four-byte value beginning
+at address 100 occupies addresses 100, 101, 102, and 103.
+
+The row is a teaching diagram, not a claim that RAM is physically built as one
+long row. It models the behavior visible to software: supply an address and read
+or write the byte associated with that address.
+
+When the processor wants to read or write memory, it must communicate three
+ideas to the memory system:
+
+1. the address of the desired byte;
+2. whether the operation is a read or a write; and
+3. for a write, the data to store.
+
+This lesson focuses only on the first item: communicating the address.
+
+### An address is a collection of bits
+
+An address is a number, and the processor represents that number in binary. We
+must keep two independent quantities separate:
+
+```text
+data width:
+    how many bits one location stores
+    one byte = 8 bits
+
+address width:
+    how many bits are used to choose a location
+```
+
+A hexadecimal digit represents 4 bits. A four-bit group is sometimes called a
+**nibble**. A byte is twice that size:
+
+```text
+1 hexadecimal digit = 4 bits = one nibble
+2 hexadecimal digits = 8 bits = one byte
+
+example byte: 0xA7 = binary 10100111
+```
+
+Now imagine a deliberately tiny machine with **three address bits**. The three
+bits do not describe the size of a byte. They only choose which byte-sized
+location to access. Every selected location still holds eight data bits.
+
+```text
+3-bit address    selected 8-bit storage location
+-------------    -------------------------------
+000              byte location 0
+001              byte location 1
+010              byte location 2
+011              byte location 3
+100              byte location 4
+101              byte location 5
+110              byte location 6
+111              byte location 7
+```
+
+```mermaid
+flowchart LR
+    ADDRESS["3 address bits<br/>choose one of 8 locations"]
+    SELECT{"Selected location"}
+    L0["Location 0<br/>stores 8 data bits"]
+    L1["Location 1<br/>stores 8 data bits"]
+    DOTS["..."]
+    L7["Location 7<br/>stores 8 data bits"]
+
+    ADDRESS --> SELECT
+    SELECT --> L0
+    SELECT --> L1
+    SELECT --> DOTS
+    SELECT --> L7
+```
+
+Three address bits produce eight patterns, so they can select eight byte
+locations. The total storage described by this imaginary system is therefore:
+
+```text
+8 locations × 1 byte per location = 8 bytes
+```
+
+The general address-count rule from Lesson 0 is:
+
+```text
+n address bits can form 2ⁿ different addresses
+```
+
+If address zero is included, the range is:
+
+```text
+0 through 2ⁿ − 1
+```
+
+For three bits:
+
+```text
+2³ = 8 addresses
+addresses 0 through 7
+```
+
+### From address bits to address lines
+
+In the traditional hardware model, the processor communicates each address bit
+using an electrical signal called an **address line**. A line can carry one of
+two logical states, representing binary 0 or binary 1. A group of address lines
+is often called an **address bus**.
+
+The word “line” historically refers to a physical electrical connection. Modern
+processors and memory systems contain additional layers and are not literally as
+simple as the diagrams in this lesson. Nevertheless, the A20 compatibility
+behavior is named after this traditional visible model, so it is the correct
+starting abstraction.
+
+Address lines are named `A0`, `A1`, `A2`, and so forth. The `A` means address;
+the number identifies the bit position:
+
+```text
+A0  carries address bit 0, whose place value is 2⁰ = 1
+A1  carries address bit 1, whose place value is 2¹ = 2
+A2  carries address bit 2, whose place value is 2² = 4
+...
+A20 carries address bit 20, whose place value is 2²⁰ = 1,048,576
+```
+
+The numbering begins at zero because bit positions are conventionally numbered
+from the least significant bit. Consequently, A20 is the **twenty-first** line:
+A0 is first, A1 is second, and A20 is twenty-first.
+
+Consider binary address `101` on our three-bit machine:
+
+```text
+A2 = 1 → contributes 1 × 4 = 4
+A1 = 0 → contributes 0 × 2 = 0
+A0 = 1 → contributes 1 × 1 = 1
+                             ───
+address                          5
+```
+
+```mermaid
+flowchart LR
+    CPU["Processor wants<br/>byte address 5"]
+    BITS["Binary address 101"]
+    A2["A2 = 1<br/>value 4"]
+    A1["A1 = 0<br/>value 0"]
+    A0["A0 = 1<br/>value 1"]
+    MEMORY["Memory system selects<br/>byte 5"]
+
+    CPU --> BITS
+    BITS --> A2
+    BITS --> A1
+    BITS --> A0
+    A2 --> MEMORY
+    A1 --> MEMORY
+    A0 --> MEMORY
+```
+
+Changing A0 changes an address by 1. Changing A1 changes it by 2. Changing A2
+changes it by 4. In general, bit `n` contributes `2ⁿ` to the address when that
+bit is 1.
 
 ```mermaid
 flowchart LR
@@ -66,21 +246,212 @@ to zero during early boot.
 
 ## 2. Why bit 20 marks the first MiB boundary
 
-One **MiB** is 1,048,576 bytes. That number is:
+### First define KiB and MiB
+
+Memory capacities are often grouped in powers of two because binary address bits
+naturally produce powers of two.
+
+A **kibibyte**, abbreviated **KiB**, is:
+
+```text
+1 KiB = 2¹⁰ bytes = 1,024 bytes
+```
+
+A **mebibyte**, abbreviated **MiB**, is:
+
+```text
+1 MiB = 2²⁰ bytes = 1,048,576 bytes
+      = 1,024 KiB
+```
+
+The unusual words “kibibyte” and “mebibyte” make the binary meaning explicit.
+They are different from the decimal SI units:
+
+| Unit | Exact size |
+|---|---:|
+| 1 kB or KB | 1,000 bytes |
+| 1 KiB | 1,024 bytes |
+| 1 MB | 1,000,000 bytes |
+| 1 MiB | 1,048,576 bytes |
+
+People sometimes say “megabyte” informally when they mean `2²⁰` bytes. This book
+uses **MiB** whenever the exact binary quantity is intended.
+
+### Connect 1 MiB to address bit 20
+
+One MiB is:
 
 ```text
 1 MiB = 1,048,576 = 2²⁰ = 0x00100000
 ```
 
-Addresses below that boundary can be represented with bits 0 through 19:
+With 20 address bits—A0 through A19—the machine can form `2²⁰` different
+patterns. Because address numbering begins at zero, those patterns select:
 
 ```text
-lowest address below 1 MiB: 0x00000000
-highest address below 1 MiB: 0x000FFFFF
-first address at 1 MiB:      0x00100000
+first address: 0
+last address:  2²⁰ − 1 = 1,048,575
 ```
 
-The hexadecimal digit change at `0x00100000` is bit 20 becoming 1.
+In hexadecimal:
+
+```text
+lowest address in first MiB:  0x00000000
+highest address in first MiB: 0x000FFFFF
+first address after it:        0x00100000
+```
+
+The first MiB therefore contains addresses `0x00000000` through `0x000FFFFF`.
+It contains exactly 1,048,576 bytes even though its final address is 1,048,575,
+because address zero counts as the first byte.
+
+At `0x00100000`, bits A0 through A19 are all zero and A20 becomes one:
+
+```text
+0x000FFFFF → highest address with A20 = 0
+0x00100000 → first address with A20 = 1
+```
+
+That is why A20 determines whether an address can be distinguished from the
+corresponding address exactly one MiB lower.
+
+### See the same addresses in binary
+
+Hexadecimal is compact because every hex digit represents exactly four bits. To
+convert a hexadecimal address, replace each digit independently:
+
+```text
+hex digit:  0    1    2    3    4    5    6    7
+bits:      0000 0001 0010 0011 0100 0101 0110 0111
+
+hex digit:  8    9    A    B    C    D    E    F
+bits:      1000 1001 1010 1011 1100 1101 1110 1111
+```
+
+The first MiB boundary is:
+
+```text
+hex:             0x100000
+binary, 21 bits: 1 0000 0000 0000 0000 0000
+                 ^
+                 A20 = 1
+```
+
+This is the shortest binary display that includes A20: one bit for A20 and twenty
+bits below it. The spaces group bits so we can read them; they do not add bits.
+Counting from the right, the rightmost bit is A0:
+
+```text
+bit positions: A20 | A19 ... A16 | A15 ... A12 | A11 ... A8 | A7 ... A4 | A3 ... A0
+binary:           1 |    0000    |    0000    |    0000   |    0000   |   0000
+                  ^
+                  A20
+```
+
+Sometimes the same number is written in a fixed 32-bit display:
+
+```text
+0x00100000
+0000 0000 0001 0000 0000 0000 0000 0000
+└─────── leading zero padding ─────────┘
+```
+
+That display has 32 positions because we chose to show the number in a 32-bit
+container. The leading zeros do not mean the address uses 32 meaningful bits.
+The first `1` is still A20; bits A21 through A31 are all zero.
+
+The four-bit table above is also not a 32-bit address. It only teaches the local
+conversion rule for one hexadecimal digit. For example:
+
+```text
+hex digit F → binary 1111
+hex digit 0 → binary 0000
+hex digit 1 → binary 0001
+```
+
+Two hexadecimal digits represent one byte, but an address can contain many bytes'
+worth of digits. The number of address bits is determined by the address itself
+and the processor's address width, not by the fact that memory locations store
+one-byte values.
+
+The 20 bits **below** A20 are A0 through A19—not “bits 1 through 19.” There are
+twenty of them because zero is included in the count:
+
+```text
+A0, A1, A2, ..., A18, A19  → 20 lower bits
+A20                         → the next, twenty-first bit
+```
+
+### See the carry in the historical example
+
+The real-mode address `FFFF:FFFF` is calculated as:
+
+```text
+0xFFFF × 16 + 0xFFFF
+= 0x0FFFF0   + 0x00FFFF
+= 0x10FFEF
+```
+
+Now show the same addition in binary. We align the four-bit groups:
+
+```text
+hex:    0x0FFFF0
+binary: 0000 1111 1111 1111 1111 0000
+
+hex:    0x00FFFF
+binary: 0000 0000 1111 1111 1111 1111
+        ──────────────────────────────
+sum:    0x10FFEF
+binary: 0001 0000 1111 1111 1110 1111
+        ^
+        A20 = 1
+```
+
+The result has 21 significant bits. Reading the result from right to left:
+
+```text
+bit 0  through bit 3  → final group 1111
+bit 4  through bit 7  → group 1110
+bit 8  through bit 11 → group 1111
+bit 12 through bit 15 → group 1111
+bit 16 through bit 19 → group 0000
+bit 20                → leftmost 1
+```
+
+An original 8086 could calculate this number internally from its segment and
+offset, but it could communicate only bits A0 through A19 to memory hardware.
+The result after dropping A20 is visible in binary:
+
+```text
+calculated:  0001 0000 1111 1111 1110 1111  (0x10FFEF)
+drop A20:    0000 0000 1111 1111 1110 1111  (0x0FFEF)
+```
+
+That is the wraparound: the high A20 bit disappears, leaving an address in the
+first MiB.
+
+### See the two test addresses in binary
+
+Our test uses `0000:0500` and `FFFF:0510`:
+
+```text
+0000:0500 = 0x00000500
+           = 0000 0000 0000 0000 0000 0101 0000 0000
+
+FFFF:0510 = 0x00100500
+           = 0000 0000 0001 0000 0000 0101 0000 0000
+                         ^
+                         only A20 differs
+```
+
+With A20 enabled, those differing bits select different bytes. With A20
+disabled, the A20 `1` in the second address is forced to `0`, so both addresses
+select the same physical byte:
+
+```text
+0x00100500 with A20 forced to 0
+= 0x00000500
+```
 
 ```mermaid
 flowchart TB
@@ -93,8 +464,14 @@ flowchart TB
 
 ## 3. The historical compatibility problem
 
-The original 8086 processor had 20 address lines, A0 through A19. It could
-distinguish `2²⁰` byte addresses: exactly one MiB.
+The **Intel 8086** was an early processor in the x86 family, introduced long
+before modern x86-64 processors. Real mode preserves much of its programming
+model, which is why behavior from that processor still matters during our BIOS
+boot path.
+
+The 8086 had 20 address lines, A0 through A19. It could therefore communicate
+only the lowest 20 bits of an address and distinguish `2²⁰` byte addresses:
+exactly one MiB.
 
 Real-mode segment arithmetic, however, can calculate a slightly larger number.
 For example:
@@ -107,13 +484,26 @@ FFFF:FFFF
 ```
 
 The result contains bit 20, but the original processor had no A20 line with which
-to communicate that bit. The extra bit was lost, so the address wrapped into the
-lowest MiB.
+to communicate that bit. Only the lowest 20 bits reached the memory system.
+
+For `0x10FFEF`, removing bit 20 leaves:
+
+```text
+calculated address: 0x10FFEF
+bit 20 contribution: 0x100000
+address that remains: 0x00FFEF
+```
+
+The address therefore returns to, or **wraps around into**, the first MiB. The
+idea is similar to a counter that can display only three decimal digits: after
+`999`, adding one produces `000` because there is no fourth digit available.
 
 Some old software came to depend on that wrapping behavior. Later x86 processors
 could address more memory, but immediately exposing A20 would have changed how
-those old programs behaved. PC designers therefore added a compatibility control
-that could force A20 to zero.
+those old programs behaved. **Backward compatibility** means allowing newer
+machines to continue running software written for older machines. To preserve
+that compatibility, PC designers added a control that could force A20 to zero
+and reproduce the older wraparound behavior.
 
 When A20 is disabled:
 
@@ -123,6 +513,8 @@ address 0x00100500 behaves like address 0x00000500
 
 Those two different calculated addresses then refer to the same byte. This is
 called **aliasing**: more than one address identifies the same storage location.
+Changing the byte through either alias changes what is observed through the
+other, because there is only one underlying byte.
 
 ```mermaid
 flowchart LR
@@ -136,8 +528,16 @@ flowchart LR
     GATE -->|"No: bit 20 forced to 0"| LOWMEM
 ```
 
-This compatibility behavior is called the **A20 gate**. “Opening” or “enabling”
-the gate means allowing bit 20 to participate in address selection.
+This compatibility control is called the **A20 gate**. The word “gate” means the
+bit is conceptually either allowed through or blocked:
+
+```text
+A20 gate enabled  → address bit 20 is used
+A20 gate disabled → address bit 20 is forced to zero
+```
+
+It is not a gate through which program bytes travel. It controls whether one bit
+of the calculated address affects the selected memory location.
 
 ## 4. Why we test instead of enabling blindly
 

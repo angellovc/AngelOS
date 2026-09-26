@@ -88,6 +88,33 @@ are hexadecimal.
 Hexadecimal does not change the stored value. Binary `1010`, hexadecimal `A`, and
 decimal `10` are three written representations of the same number.
 
+### Why hexadecimal is convenient for bytes
+
+A byte contains 8 bits. One hexadecimal digit represents 4 bits, so exactly two
+hexadecimal digits represent one complete byte:
+
+```text
+binary:       1010 0111
+hexadecimal:     A    7
+byte:         0xA7
+```
+
+Each of the byte's 256 possible bit patterns has a two-digit hexadecimal name,
+from `0x00` through `0xFF`:
+
+```text
+0x00 = binary 0000 0000
+0x01 = binary 0000 0001
+0xA7 = binary 1010 0111
+0xFF = binary 1111 1111
+```
+
+That is why hexadecimal is especially convenient when inspecting bytes: no bits
+are hidden or approximated, and each hex digit maps directly to a four-bit group.
+It is also convenient for larger values such as addresses; we simply write more
+hexadecimal digits. For example, four hex digits represent 16 bits, and eight
+hex digits represent 32 bits.
+
 ## 3. The parts in our first CPU model
 
 For now, imagine the processor as four cooperating pieces:
@@ -164,8 +191,11 @@ lower half of `AX`; it is not a separate piece of storage.
 
 ## 5. RAM is an array of addressed bytes
 
-We can begin with a simple model of RAM: a long row of byte-sized storage cells.
-Each cell has a numeric **address**.
+We can begin with a simple model of RAM: many storage locations that can each hold
+one byte. Every location has a numeric **address** that identifies the location.
+The address is not the byte stored there: address `0x1000` might currently contain
+`0x48`, and writing a different byte changes the content while the address remains
+`0x1000`.
 
 ```mermaid
 flowchart LR
