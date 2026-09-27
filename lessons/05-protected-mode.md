@@ -470,6 +470,36 @@ rules to apply while interpreting the same offset. Later, paging adds another
 layer: a virtual page can be mapped to a physical page, and the page-table
 permissions are checked as well.
 
+### How does the CPU know whether bytes are code or data?
+
+It does not inspect the bytes and decide. Memory contains only numbers. The
+**kind of access** gives those numbers their role:
+
+```text
+instruction fetch → CS:EIP  → interpret the bytes as instructions
+ordinary load     → DS:offset → read the bytes as data
+stack operation   → SS:SP/ESP → read or write stack data
+```
+
+For example, if address `0x00008000` contains the byte `0xB8`:
+
+```asm
+mov eax, [0x00008000]   ; read the byte(s) as data through DS
+jmp 0x00008000          ; fetch instructions there through CS:EIP
+```
+
+The bytes did not change. The first instruction requested a data read; the
+second changed the instruction pointer, so the processor began fetching and
+decoding bytes as instructions. This is why “code” and “data” describe how a
+region is intended to be used, not two different physical kinds of byte.
+
+Our current broad descriptors permit overlapping addresses, so they do not yet
+prevent every accidental interpretation. Later, paging will add a per-page
+**execute permission** (the NX rule): a page marked non-executable may be read
+as data but cannot be used for instruction fetches. The loader and kernel place
+program sections in suitable pages, and the CPU enforces those page-table
+permissions.
+
 ## 4. What one descriptor describes
 
 A descriptor tells the processor how to interpret a segment. The fields we use
