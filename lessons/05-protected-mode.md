@@ -380,15 +380,20 @@ bit:     7 6 5 4 3 2 1 0
 value: 128       +16 +8    +2 = 154 decimal = 0x9A
 ```
 
-For an x86 segment access byte, each position has a defined meaning:
+For an x86 segment access byte, each position has a defined meaning. Here,
+**position** means the location number (`7` is the leftmost/highest bit and
+`0` is the rightmost/lowest bit), while **stored value** means the `0` or `1`
+actually found at that position:
 
 ```text
-bit:       7     6 5    4     3     2     1     0
-value:     1     0 0    1     1     0     1     0
-meaning:   P    DPL     S     E     C/R   R/W   A
+position:        7     6 5    4     3     2     1     0
+stored value:    1     0 0    1     1     0     1     0
+field:           P    DPL     S     E     C/R   R/W   A
 ```
 
-Read that table vertically:
+Read the table vertically. For example, position 7 stores value 1, so `P = 1`;
+positions 6 and 5 store `00`, so `DPL = 00`; position 3 stores value 1, so
+`E = 1`:
 
 ```text
 P   = 1  → present: the descriptor is valid
