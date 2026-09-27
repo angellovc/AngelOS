@@ -199,6 +199,17 @@ then uses the selector's index to find the corresponding eight-byte record.
 
 ### Why divide by eight?
 
+The descriptors do not overlap. They remain independent records at different
+locations in the GDT. The division by eight concerns only the *encoding of a
+selector*; it does not divide or modify the descriptors themselves.
+
+Think of the process in two separate steps:
+
+```text
+1. Decode the selector to obtain a descriptor index.
+2. Use that index to locate one complete 8-byte record in the GDT.
+```
+
 The selector reserves its lowest three bits for other information. The remaining
 upper bits contain the descriptor index. In binary, our selectors are:
 
@@ -238,6 +249,42 @@ the descriptor index:
 
 The division is therefore a way for us to see the index in this simple case. The
 CPU performs the equivalent bit-field extraction while loading a segment register.
+
+The decoded index then selects one record by multiplying the index by the
+descriptor size:
+
+```text
+selector 0x08
+    >> 3 = index 1
+    1 × 8 = GDT byte offset 8
+    use bytes 8–15: the complete code descriptor
+
+selector 0x10
+    >> 3 = index 2
+    2 × 8 = GDT byte offset 16
+    use bytes 16–23: the complete data descriptor
+```
+
+```mermaid
+flowchart LR
+    SELECTOR["Selector 0x08 or 0x10<br/>a 16-bit encoded value"]
+    INDEX["Shift right 3 bits<br/>obtain index 1 or 2"]
+    OFFSET["Multiply index by 8<br/>obtain GDT byte offset"]
+    RECORD["Read exactly one independent<br/>8-byte descriptor record"]
+
+    SELECTOR --> INDEX --> OFFSET --> RECORD
+```
+
+For example, `0x08` and `0x10` do not point into the same descriptor:
+
+```text
+0x08 → GDT bytes 8–15  → descriptor 1
+0x10 → GDT bytes 16–23 → descriptor 2
+```
+
+They are separate because their decoded indices are different. The lowest three
+selector bits affect how the selector is interpreted, but they do not consume
+space inside, or overlap, any GDT descriptor.
 
 ### What does a descriptor describe?
 
