@@ -101,6 +101,31 @@ segments all begin at address zero and cover a large continuous range. We are
 learning the transition mechanism first; we are not yet using every protection
 feature.
 
+### What actually switches protected mode on?
+
+Loading the GDT alone does **not** switch modes. It only tells the processor
+where our descriptor table is located. The transition has four distinct steps:
+
+```text
+1. LGDT      → load the GDT address and size into the CPU's GDTR register
+2. CR0.PE=1  → set the Protection Enable bit; request protected mode
+3. far jump  → load CS as a protected-mode selector and discard old fetched
+               instructions
+4. load DS…  → load the other segment registers with protected-mode selectors
+```
+
+After step 2, the CPU is in protected mode, but the far jump in step 3 is
+essential housekeeping. It loads the new code-segment descriptor into `CS` and
+starts execution at the 32-bit entry point. The following `DS`, `ES`, `FS`,
+`GS`, and `SS` loads select the data descriptor for ordinary memory and stack
+accesses.
+
+Once this is complete, a segment register no longer means “multiply this number
+by 16.” It contains a selector. The CPU uses that selector to find a descriptor
+and applies the descriptor's base, limit, type, and privilege checks to the
+access. Paging is a separate later mechanism; it is still disabled in this
+lesson.
+
 ## 2. Why leave real mode?
 
 Real mode is useful for talking to BIOS, but it is an old compatibility environment
