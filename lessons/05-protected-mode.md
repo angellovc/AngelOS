@@ -411,6 +411,39 @@ enforce access rules. Our 32-bit descriptors are transitional because they
 teach the protected-mode mechanism and get us safely to the paging and
 64-bit stages; they are not the final memory-allocation model.
 
+### If the descriptor really reserves separate ranges
+
+Suppose, purely as a segmentation example, that we created non-overlapping
+ranges like this:
+
+```text
+code descriptor: 0 GiB through 5 GiB
+data descriptor: 5 GiB through 9 GiB
+```
+
+If the program actually used only 2 GiB of code, the remaining 3 GiB would
+still be inside the code segment. A data access using the data selector could
+not automatically borrow that space. The CPU checks the data selector's base
+and limit, so the data segment would still end at 9 GiB. In that rigid design,
+yes: the unused code range cannot be reused by data until the operating system
+changes the descriptors.
+
+There are two important qualifications:
+
+1. These are **address ranges**, not guaranteed physical RAM reservations. A
+   segment can describe an address range whose physical pages have not been
+   allocated yet.
+2. Our current 32-bit protected-mode address space cannot provide one flat
+   9-GiB linear range in the first place. The example illustrates the rule, not
+   a layout we can implement with today's descriptors.
+
+With paging, the operating system avoids this rigid partition. It can leave
+unused virtual pages unmapped and give their physical pages to a growing data
+region. If the machine has 10 GiB of physical RAM, at most roughly 10 GiB can
+be resident at one time (less what the kernel and devices use), but the
+process's virtual regions need not permanently reserve 5 GiB for code. The
+actual code footprint may be 2 GiB while the data region grows independently.
+
 ## 4. What one descriptor describes
 
 A descriptor tells the processor how to interpret a segment. The fields we use
