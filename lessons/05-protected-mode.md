@@ -444,6 +444,32 @@ be resident at one time (less what the kernel and devices use), but the
 process's virtual regions need not permanently reserve 5 GiB for code. The
 actual code footprint may be 2 GiB while the data region grows independently.
 
+### Can descriptor ranges overlap?
+
+Yes. The GDT does not require descriptors to form adjacent, non-overlapping
+pieces of memory. Each descriptor is an independent description. Two
+descriptors may describe the same range while giving that range different
+roles or permissions.
+
+That is exactly what our first GDT does:
+
+```text
+code descriptor: base 0, almost-4-GiB limit
+data descriptor: base 0, almost-4-GiB limit
+```
+
+They overlap almost completely. If the offset is `0x00008000`, then:
+
+```text
+CS:0x00008000 → linear address 0x00008000, checked as code
+DS:0x00008000 → linear address 0x00008000, checked as data
+```
+
+The bytes are not duplicated. The selector tells the CPU which descriptor's
+rules to apply while interpreting the same offset. Later, paging adds another
+layer: a virtual page can be mapped to a physical page, and the page-table
+permissions are checked as well.
+
 ## 4. What one descriptor describes
 
 A descriptor tells the processor how to interpret a segment. The fields we use
