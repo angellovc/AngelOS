@@ -370,19 +370,41 @@ flowchart LR
     LIMITL --- BASEL --- BASEM --- ACCESS --- FLAGS --- BASEH
 ```
 
-`10011010b` is binary for `0x9A`. Its important bits say:
+`10011010b` is binary for `0x9A`. The spelling is important: it is
+`1001 1010`, not `1001 1100` or any other sequence. We can verify the
+conversion by adding the values of the bits that are `1`:
 
 ```text
-present      = 1  → descriptor is valid
-ring 0       = 00 → highest kernel privilege level for now
-code/data    = 1  → this is a code/data descriptor type
-executable   = 1  → CPU may fetch instructions from it
-readable     = 1  → code bytes may also be read
+binary:  1 0 0 1 1 0 1 0
+bit:     7 6 5 4 3 2 1 0
+value: 128       +16 +8    +2 = 154 decimal = 0x9A
+```
+
+For an x86 segment access byte, each position has a defined meaning:
+
+```text
+bit:       7     6 5    4     3     2     1     0
+value:     1     0 0    1     1     0     1     0
+meaning:   P    DPL     S     E     C/R   R/W   A
+```
+
+Read that table vertically:
+
+```text
+P   = 1  → present: the descriptor is valid
+DPL = 00 → privilege level 0, our highest kernel level for now
+S   = 1  → this is a code/data descriptor, not a system descriptor
+E   = 1  → executable: the CPU may fetch instructions from it
+C   = 0  → non-conforming code segment
+R   = 1  → readable: code bytes may also be read as data
+A   = 0  → not yet marked accessed; the CPU may set this later
 ```
 
 The exact bit layout is part of the x86 descriptor format. We show the binary
-form because each bit has a separate meaning; treating `0x9A` as a magic number
-would hide that structure.
+form because every position has a separate meaning; treating `0x9A` as a magic
+number would hide that structure. The data descriptor uses `10010010b`
+(`0x92`) instead: its executable bit is `0`, while its writable-data bit is
+`1`.
 
 ### The data descriptor
 
