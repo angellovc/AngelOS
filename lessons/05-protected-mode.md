@@ -405,6 +405,31 @@ R   = 1  → readable: code bytes may also be read as data
 A   = 0  → not yet marked accessed; the CPU may set this later
 ```
 
+### What does “non-conforming” mean?
+
+The `C` bit is a rule for **entering** an executable segment. It is not a
+statement about whether the instructions are valid or invalid.
+
+An x86 program runs at a privilege level. We currently use privilege level 0,
+the level normally used by an operating-system kernel. With `C = 0`, this is a
+normal (non-conforming) code segment: a direct jump or call into it must obey
+the ordinary privilege checks. In our small kernel, all code is level 0, so the
+check succeeds and execution continues.
+
+With `C = 1`, the segment would be a conforming code segment. Code running at a
+less privileged level could enter it under special rules, but the CPU would
+keep the caller's current privilege level. This is a specialized arrangement
+that our kernel does not need yet. We choose `C = 0` because it is the normal,
+simpler kernel-code setting.
+
+The important distinction is:
+
+```text
+S = 1 → this descriptor is for ordinary code/data, not a system descriptor
+E = 1 → this ordinary descriptor is executable code
+C = 0 → entering this code uses normal privilege checks
+```
+
 The exact bit layout is part of the x86 descriptor format. We show the binary
 form because every position has a separate meaning; treating `0x9A` as a magic
 number would hide that structure. The data descriptor uses `10010010b`
