@@ -35,8 +35,10 @@ flowchart TD
     A20["boot/stage2.asm<br/>ensure_a20 and check_a20"]
     L5["Lesson 5<br/>Protected mode"]
     PM["boot/stage2.asm<br/>enter_protected_mode and GDT"]
+    L6["Lesson 6<br/>Paging foundations"]
+    P6["Conceptual only<br/>page tables next lesson"]
 
-    L0 --> L1 --> B1 --> L2 --> M --> S2 --> L3 --> MAP --> L4 --> A20 --> L5 --> PM
+    L0 --> L1 --> B1 --> L2 --> M --> S2 --> L3 --> MAP --> L4 --> A20 --> L5 --> PM --> L6 --> P6
 ```
 
 ## Lesson-to-code index
@@ -66,6 +68,7 @@ flowchart TD
 | 5 | Enable protected mode | [`boot/stage2.asm`](boot/stage2.asm) | `enter_protected_mode:` |
 | 5 | Start 32-bit execution | [`boot/stage2.asm`](boot/stage2.asm) | `protected_mode_entry:` |
 | 5 | Direct VGA/debug output | [`boot/stage2.asm`](boot/stage2.asm) | `pm_print_string:` |
+| 6 | Virtual addresses, pages, and page-table translation | [`lessons/06-paging-foundations.md`](lessons/06-paging-foundations.md) | Conceptual lesson; implementation begins next lesson |
 
 ## Understanding local-label markers
 

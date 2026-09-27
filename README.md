@@ -24,6 +24,8 @@ are used, following the rules in [`LEARNING_RULES.md`](LEARNING_RULES.md).
    alias during early boot and how stage 2 verifies and enables address bit 20.
 5. [`05-protected-mode.md`](lessons/05-protected-mode.md) — How stage 2 builds a
    GDT, enables protected mode, and runs 32-bit code without BIOS video services.
+6. [`06-paging-foundations.md`](lessons/06-paging-foundations.md) — Why virtual
+   addresses and page tables are needed, and how a 32-bit address is translated.
 
 Worked lesson exercises are stored in [`exercise-results`](exercise-results/).
 The [`CODE_READING_MAP.md`](CODE_READING_MAP.md) index connects every implemented
@@ -31,7 +33,9 @@ concept to its source file and stable assembly label.
 
 ## Build the current milestone
 
-The current code includes everything implemented through Lesson 5.
+The current executable code includes everything implemented through Lesson 5.
+Lesson 6 is the conceptual foundation for paging; the first page-table code will
+be added in the following implementation lesson.
 
 ```sh
 make clean
@@ -60,11 +64,11 @@ flowchart LR
 ```
 
 The loader begins in 16-bit real mode because that is the legacy-BIOS startup
-contract. Lesson 5 now enters 32-bit protected mode. The next transition will
-create page tables, enable the controls required for long mode, and jump into
-64-bit code. Only after that stable 64-bit environment exists will we begin the
-kernel's C entry point. Assembly will remain for the small operations that must
-directly control the processor.
+contract. Lesson 5 now enters 32-bit protected mode, and Lesson 6 introduces the
+address-translation model that the next implementation lesson will encode as
+page tables. After that stable paging foundation exists, we will enable the
+controls required for long mode and jump into 64-bit code. Only after that
+stable 64-bit environment exists will we begin the kernel's C entry point.
 
 ## Long-term direction
 
