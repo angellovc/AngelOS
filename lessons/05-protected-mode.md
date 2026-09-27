@@ -320,6 +320,44 @@ flowchart LR
     REGISTER --> INDEX --> RECORD --> RULES
 ```
 
+### Descriptors do not allocate memory
+
+This is an important distinction:
+
+```text
+descriptor  → defines the broad rules for a segment
+allocator   → chooses which free bytes a program receives
+program     → uses the bytes that the allocator returned
+```
+
+A descriptor is therefore more like a **fence and a sign** than a reservation
+of every byte inside the fence. For example, our data descriptor says, in
+effect:
+
+> Data and stack accesses may use offsets in this permitted range, and those
+> accesses may be writable.
+
+It does not say that one program owns the entire range, nor does it decide
+whether a program needs 20 bytes or 20 MiB. Later, a program will request
+memory through an operating-system interface. The kernel's memory allocator
+will find free space, record who owns it, and return a particular block:
+
+```mermaid
+flowchart LR
+    REQUEST["Program requests<br/>memory"] --> KERNEL["Kernel allocator<br/>finds free space"]
+    KERNEL --> BLOCK["Allocated block<br/>for this program"]
+    DESCRIPTOR["Descriptor rules<br/>allow or reject the access"] --> BLOCK
+```
+
+In this first protected-mode experiment, the code and data descriptors both
+cover almost the entire 4-GiB address range. That makes the transition easy to
+understand, but it is intentionally broad: it is not yet strong protection
+between programs. We will later add **paging**, where memory is divided into
+small pages and page tables can map each program's virtual addresses to chosen
+physical pages with separate read/write and user/kernel permissions. An
+allocator chooses the pages; the page tables and descriptors enforce the
+processor's access rules.
+
 ## 4. What one descriptor describes
 
 A descriptor tells the processor how to interpret a segment. The fields we use
