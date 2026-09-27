@@ -123,27 +123,30 @@ The **Global Descriptor Table**, abbreviated **GDT**, is an array in RAM contain
 segment descriptions. An **array** is an ordered sequence of same-sized items.
 Each GDT item is called a **descriptor** and occupies eight bytes.
 
-Our table has three descriptors:
+Our table has three separate descriptors. A descriptor is one complete 8-byte
+record. “Null,” “code,” and “data” describe the roles of those three records;
+they are not three pieces of one descriptor:
 
 ```mermaid
 flowchart TB
     GDT["GDT in RAM"]
-    NULL["Descriptor 0<br/>Selector 0x00<br/>Null, unusable"]
-    CODE["Descriptor 1<br/>Selector 0x08<br/>32-bit code"]
-    DATA["Descriptor 2<br/>Selector 0x10<br/>32-bit data"]
+    NULL["Descriptor 0<br/>8-byte record<br/>Null, unusable"]
+    CODE["Descriptor 1<br/>8-byte record<br/>Code segment"]
+    DATA["Descriptor 2<br/>8-byte record<br/>Data segment"]
 
     GDT --> NULL
     GDT --> CODE
     GDT --> DATA
 ```
 
-The first descriptor must be all zeroes. It is not a usable code or data segment;
-its presence catches some invalid segment selections. The two usable descriptors
-are:
+The first descriptor must be all zeroes. It is a complete 8-byte record, but it is
+not a usable code or data segment. Its presence catches some invalid segment
+selections. The three complete records occupy these byte ranges:
 
 ```text
-descriptor 1 starts at GDT + 1 × 8 = GDT + 8 bytes
-descriptor 2 starts at GDT + 2 × 8 = GDT + 16 bytes
+GDT byte offset 0–7    → complete descriptor 0: null
+GDT byte offset 8–15   → complete descriptor 1: code
+GDT byte offset 16–23  → complete descriptor 2: data
 ```
 
 The selector values `0x08` and `0x10` are therefore connected to the descriptor
@@ -152,9 +155,9 @@ descriptor. In this simple table, the selector's index is the descriptor index
 multiplied by eight:
 
 ```text
-0x00 / 8 = 0 → null descriptor
-0x08 / 8 = 1 → code descriptor
-0x10 / 8 = 2 → data descriptor
+0x00 / 8 = 0 → choose the complete 8-byte record at GDT offset 0:  null
+0x08 / 8 = 1 → choose the complete 8-byte record at GDT offset 8:  code
+0x10 / 8 = 2 → choose the complete 8-byte record at GDT offset 16: data
 ```
 
 Real selectors contain a few additional bits for table choice and privilege level.
@@ -186,9 +189,9 @@ descriptor's byte offset:
 
 ```mermaid
 flowchart LR
-    SEL0["Selector 0x00"] --> D0["GDT offset 0<br/>bytes 0–7<br/>descriptor 0"]
-    SEL1["Selector 0x08"] --> D1["GDT offset 8<br/>bytes 8–15<br/>descriptor 1"]
-    SEL2["Selector 0x10"] --> D2["GDT offset 16<br/>bytes 16–23<br/>descriptor 2"]
+    SEL0["Selector 0x00"] --> D0["Complete 8-byte record<br/>descriptor 0: null"]
+    SEL1["Selector 0x08"] --> D1["Complete 8-byte record<br/>descriptor 1: code"]
+    SEL2["Selector 0x10"] --> D2["Complete 8-byte record<br/>descriptor 2: data"]
 ```
 
 The CPU knows the GDT's starting address because `LGDT` loaded it earlier. It
@@ -228,9 +231,9 @@ Because our three low bits are all zero, the selector is numerically eight times
 the descriptor index:
 
 ```text
-0x00 / 8 = 0 → descriptor 0
-0x08 / 8 = 1 → descriptor 1
-0x10 / 8 = 2 → descriptor 2
+0x00 / 8 = 0 → descriptor 0: the complete null record
+0x08 / 8 = 1 → descriptor 1: the complete code record
+0x10 / 8 = 2 → descriptor 2: the complete data record
 ```
 
 The division is therefore a way for us to see the index in this simple case. The
