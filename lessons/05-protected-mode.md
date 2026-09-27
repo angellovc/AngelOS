@@ -685,6 +685,30 @@ gdt_descriptor:
     dd stage2_address(gdt_start)
 ```
 
+`gdt_start` and `gdt_end` are labels that we created in our source file. They
+do not come from BIOS, and the CPU does not invent them. NASM gives a label the
+address of the next byte it is assembling at that point:
+
+```asm
+gdt_start:                 ; address of the first table byte
+    dq 0                   ; descriptor 0: 8 bytes
+    ; code descriptor:       8 bytes
+    ; data descriptor:       8 bytes
+gdt_end:                   ; address just after the last table byte
+```
+
+The end label is deliberately placed **one byte past** the table. Therefore
+subtracting the labels gives the table's byte count:
+
+```text
+gdt_end - gdt_start = 24 bytes
+```
+
+The subtraction is performed by NASM while assembling; it is not an operation
+that the running kernel performs. The label names are our choice—we could call
+them `table_begin` and `table_after_end`, but every reference would have to use
+the new names consistently.
+
 It contains:
 
 ```text
