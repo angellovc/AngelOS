@@ -385,6 +385,32 @@ non-executable. The allocator chooses the regions; the page tables make the
 choices enforceable. This is why our broad descriptors are only a first step,
 not the final memory-protection design.
 
+### Why this arrangement is transitional for our project
+
+When we later enter x86-64 long mode, ordinary `CS`, `DS`, `ES`, and `SS`
+segments are normally configured as **flat** segments: their base is zero and
+their useful boundary is no longer used to divide a process into a small code
+area and a small data area. The GDT still exists because the CPU still uses
+descriptors for code-segment type, privilege level, and other control
+information. The special `FS` and `GS` segments can also still have meaningful
+bases.
+
+The flexible memory layout then comes mainly from paging:
+
+```mermaid
+flowchart LR
+    VIRTUAL["Process virtual addresses"] --> PAGES["Page tables<br/>map selected pages"]
+    PAGES --> PHYSICAL["Physical RAM pages"]
+    PAGES --> RULES["Read/write/execute<br/>and user/kernel permissions"]
+```
+
+So “use memory more freely” means that a process can request and release
+separate virtual regions as it needs them, rather than that every byte becomes
+unrestricted. The allocator still tracks ownership, and the page tables still
+enforce access rules. Our 32-bit descriptors are transitional because they
+teach the protected-mode mechanism and get us safely to the paging and
+64-bit stages; they are not the final memory-allocation model.
+
 ## 4. What one descriptor describes
 
 A descriptor tells the processor how to interpret a segment. The fields we use
