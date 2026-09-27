@@ -358,6 +358,33 @@ physical pages with separate read/write and user/kernel permissions. An
 allocator chooses the pages; the page tables and descriptors enforce the
 processor's access rules.
 
+### Could we give one program 2 GiB of code and 6 GiB of writable data?
+
+Not with one ordinary 32-bit address space. In 32-bit protected mode, a
+program's linear addresses are 32 bits wide:
+
+```text
+2^32 addresses = 4 GiB of addressable virtual space
+```
+
+The requested layout would need:
+
+```text
+2 GiB code + 6 GiB data = 8 GiB
+```
+
+That is larger than the available 4-GiB address range. A descriptor can limit a
+code segment to a 2-GiB range, but it cannot make a 32-bit offset name 6 GiB of
+data. Also, a segment limit describes an allowed address range; it does not
+promise that all bytes in that range have physical RAM behind them.
+
+With 64-bit addressing, an operating system can give a process a much larger
+virtual address space. It would normally use paging to map the requested code
+and data regions, mark code pages non-writable, and mark writable data pages
+non-executable. The allocator chooses the regions; the page tables make the
+choices enforceable. This is why our broad descriptors are only a first step,
+not the final memory-protection design.
+
 ## 4. What one descriptor describes
 
 A descriptor tells the processor how to interpret a segment. The fields we use
