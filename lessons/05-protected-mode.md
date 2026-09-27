@@ -148,8 +148,8 @@ descriptor 2 starts at GDT + 2 × 8 = GDT + 16 bytes
 
 The selector values `0x08` and `0x10` are therefore connected to the descriptor
 positions. A **selector** is the value placed in a segment register to select a
-descriptor. In this simple table, the selector is the descriptor index multiplied
-by eight:
+descriptor. In this simple table, the selector's index is the descriptor index
+multiplied by eight:
 
 ```text
 0x00 / 8 = 0 → null descriptor
@@ -160,6 +160,115 @@ by eight:
 Real selectors contain a few additional bits for table choice and privilege level.
 We leave those bits zero in this lesson, so the simple division explains the
 values we use.
+
+### Descriptors are eight-byte records
+
+Yes: each descriptor occupies exactly eight bytes. The GDT is therefore an array
+of eight-byte records laid next to one another in memory:
+
+```text
+GDT byte offset 0–7    → descriptor 0: null descriptor
+GDT byte offset 8–15   → descriptor 1: code descriptor
+GDT byte offset 16–23  → descriptor 2: data descriptor
+```
+
+If the GDT begins at address `GDT_BASE`, the records begin at:
+
+```text
+descriptor 0 address = GDT_BASE + 0
+descriptor 1 address = GDT_BASE + 8
+descriptor 2 address = GDT_BASE + 16
+```
+
+The selector is not the physical address of the descriptor. It is an encoded
+reference. In the simple selectors used here, the number is chosen to match the
+descriptor's byte offset:
+
+```mermaid
+flowchart LR
+    SEL0["Selector 0x00"] --> D0["GDT offset 0<br/>bytes 0–7<br/>descriptor 0"]
+    SEL1["Selector 0x08"] --> D1["GDT offset 8<br/>bytes 8–15<br/>descriptor 1"]
+    SEL2["Selector 0x10"] --> D2["GDT offset 16<br/>bytes 16–23<br/>descriptor 2"]
+```
+
+The CPU knows the GDT's starting address because `LGDT` loaded it earlier. It
+then uses the selector's index to find the corresponding eight-byte record.
+
+### Why divide by eight?
+
+The selector reserves its lowest three bits for other information. The remaining
+upper bits contain the descriptor index. In binary, our selectors are:
+
+```text
+0x00 = 0000 0000 0000 0000
+0x08 = 0000 0000 0000 1000
+0x10 = 0000 0000 0001 0000
+```
+
+Dividing by eight is equivalent to shifting right by three bits:
+
+```text
+0x08 >> 3 = 0x01 → descriptor index 1
+0x10 >> 3 = 0x02 → descriptor index 2
+```
+
+Those three low bits are structured as:
+
+```text
+selector bits:  [descriptor index ...][TI][RPL][RPL]
+                                  bit2  bit1 bit0
+```
+
+- `TI` chooses between the Global Descriptor Table and another table. We use
+  `TI=0`, meaning the GDT.
+- `RPL` is the requested privilege level. We use `RPL=00`, the most privileged
+  level, for this early kernel code.
+
+Because our three low bits are all zero, the selector is numerically eight times
+the descriptor index:
+
+```text
+0x00 / 8 = 0 → descriptor 0
+0x08 / 8 = 1 → descriptor 1
+0x10 / 8 = 2 → descriptor 2
+```
+
+The division is therefore a way for us to see the index in this simple case. The
+CPU performs the equivalent bit-field extraction while loading a segment register.
+
+### What does a descriptor describe?
+
+A descriptor does not merely say “these eight bytes of the GDT exist.” The eight
+bytes are metadata—a description used by the CPU. They describe a segment's:
+
+```text
+base address       → where the segment begins
+limit              → largest permitted offset
+access permissions → code or data, readable or writable, present or not
+flags              → operand size and limit units
+```
+
+For our flat descriptors, the base is zero and the effective limit is nearly 4
+GiB. Therefore selector `0x08` means:
+
+> Use descriptor 1 as the current code-segment description.
+
+Selector `0x10` means:
+
+> Use descriptor 2 as the current data-and-stack-segment description.
+
+The selector chooses the descriptor; the descriptor describes the memory range
+and permissions. These are two different objects:
+
+```mermaid
+flowchart LR
+    REGISTER["CS = 0x08<br/>or DS = 0x10"]
+    INDEX["Extract descriptor index"]
+    RECORD["Read 8-byte descriptor<br/>from the GDT"]
+    RULES["Apply base, limit,<br/>and permission rules"]
+
+    REGISTER --> INDEX --> RECORD --> RULES
+```
 
 ## 4. What one descriptor describes
 
